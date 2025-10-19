@@ -24,7 +24,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { FaGithub, FaGoogle } from "react-icons/fa";
 
 const formSchema = z.object({
-  email: z.email({ message: "邮箱格式不正确" }),
+  email: z.string().email({ message: "邮箱格式不正确" }),
   password: z.string().min(1, { message: "密码不能为空" }),
 });
 
