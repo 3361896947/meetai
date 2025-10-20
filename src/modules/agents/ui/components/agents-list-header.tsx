@@ -25,7 +25,7 @@ export function AgentsListHeader() {
       <NewAgentDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
       <div className="py-4 px-4 md:px-8 flex flex-col gap-y-4">
         <div className="flex items-center justify-between">
-          <h5 className="font-semibold">我的 Agents</h5>
+          <h5 className="font-semibold text-xl">我的 Agents</h5>
           <Button onClick={() => setIsDialogOpen(true)}>
             <PlusIcon />
             创建 Agent
