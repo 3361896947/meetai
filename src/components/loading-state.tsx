@@ -12,7 +12,7 @@ export function LoadingState({ title, description }: Props) {
         <Loader2Icon className="size-6 animate-spin text-primary" />
         <div className="flex flex-col gap-y-2 text-center">
           <h6 className="text-lg font-semibold">{title}</h6>
-          <p>{description}</p>
+          <p className="text-sm">{description}</p>
         </div>
       </div>
     </div>
