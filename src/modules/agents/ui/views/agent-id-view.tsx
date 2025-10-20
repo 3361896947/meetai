@@ -1,0 +1,116 @@
+"use client";
+import { ErrorState } from "@/components/error-state";
+import { LoadingState } from "@/components/loading-state";
+import { useTRPC } from "@/trpc/client";
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
+import { AgentIdViewHeader } from "../components/agent-id-view-header";
+import { GeneratedAvatar } from "@/components/generated-avatar";
+import { Badge } from "@/components/ui/badge";
+import { VideoIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useConfirm } from "../../hooks/use-confirm";
+import { useState } from "react";
+import { UpdateAgentDialog } from "../components/update-agent-dialog";
+
+interface Props {
+  agentId: string;
+}
+
+export function AgentIdView({ agentId }: Props) {
+  const trpc = useTRPC();
+
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const [updateAgentDialogOpen, setUpdateAgentDialogOpen] = useState(false);
+
+  const { data } = useSuspenseQuery(
+    trpc.agents.getOne.queryOptions({ id: agentId })
+  );
+
+  const removeAgent = useMutation(
+    trpc.agents.remove.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries(
+          trpc.agents.getMany.queryOptions({})
+        );
+        // TODO: Invalidate freetier usage
+        router.push("/agents");
+      },
+      onError: (error) => {
+        toast.error(`删除Agent失败: ${error.message}`);
+      },
+    })
+  );
+
+  const [RemoveConfirmation, confirmRemove] = useConfirm(
+    "删除Agent",
+    `您确定要删除此Agent吗？与之相关的${data.meetingCount}个会话也将被删除。`
+  );
+
+  async function handleRemove() {
+    const ok = await confirmRemove();
+
+    if (!ok) return;
+
+    await removeAgent.mutateAsync({ id: agentId });
+  }
+
+  return (
+    <>
+      <RemoveConfirmation />
+      <UpdateAgentDialog
+        open={updateAgentDialogOpen}
+        onOpenChange={setUpdateAgentDialogOpen}
+        initialValues={data}
+      />
+
+      <div className="flex-1 py-4 px-4 md:px-8 flex flex-col gap-y-4">
+        <AgentIdViewHeader
+          agentId={agentId}
+          agentName={data.name}
+          onEdit={() => setUpdateAgentDialogOpen(true)}
+          onRemove={handleRemove}
+        />
+
+        <div className="bg-white rounded-lg border">
+          <div className="px-4 py-5 gap-y-5 flex flex-col col-span-5">
+            <div className="flex items-center gap-x-3">
+              <GeneratedAvatar
+                variant="botttsNeutral"
+                seed={data.name}
+                className="size-10"
+              />
+              <h2 className="text-2xl font-medium">{data.name}</h2>
+            </div>
+
+            <Badge
+              variant="outline"
+              className="flex items-center gap-x-2 [&>svg]:size-4 "
+            >
+              <VideoIcon />
+              {data.meetingCount} 会话
+            </Badge>
+            <div className="flex flex-col gap-y-4">
+              <p className="text-lg font-medium ">指令</p>
+              <p className="text-neutral-800">{data.instructions}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export function AgentIdViewLoading() {
+  return <LoadingState title="正在加载Agent" description="可能需要几秒钟..." />;
+}
+
+export function AgentIdViewError() {
+  return <ErrorState title="Agent加载失败" description="请再次尝试" />;
+}

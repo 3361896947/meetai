@@ -42,11 +42,7 @@ export function AgentForm({
           trpc.agents.getMany.queryOptions({})
         );
 
-        if (initialValues?.id) {
-          await queryClient.invalidateQueries(
-            trpc.agents.getOne.queryOptions({ id: initialValues.id })
-          );
-        }
+        // TODO: Invalidate freetier usage
 
         onSuccess?.();
       },
@@ -67,12 +63,37 @@ export function AgentForm({
     },
   });
 
+  const updateAgent = useMutation(
+    trpc.agents.update.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries(
+          trpc.agents.getMany.queryOptions({})
+        );
+
+        if (initialValues?.id) {
+          await queryClient.invalidateQueries(
+            trpc.agents.getOne.queryOptions({ id: initialValues.id })
+          );
+        }
+
+        onSuccess?.();
+      },
+
+      onError: (error) => {
+        toast.error(`创建Agent失败: ${error.message}`);
+
+        // TODO:如果error code是"FORBIDDEN"，则重定向至 /upgrade 页面
+        router.push("/upgrade");
+      },
+    })
+  );
+
   const isEdit = !!initialValues?.id;
-  const isPending = createAgent.isPending;
+  const isPending = createAgent.isPending || updateAgent.isPending;
 
   function handleSubmit(values: z.infer<typeof agentsInsertSchema>) {
     if (isEdit) {
-      console.log("TODO: updateAgent");
+      updateAgent.mutate({ ...values, id: initialValues.id });
     } else {
       createAgent.mutate(values);
     }

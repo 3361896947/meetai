@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { agents } from "@/db/schema";
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
-import { agentsInsertSchema } from "../schemas";
+import { agentsInsertSchema, agentsUpdateSchema } from "../schemas";
 import { z } from "zod";
 import { and, count, desc, eq, getTableColumns, ilike, sql } from "drizzle-orm";
 import {
@@ -10,24 +10,68 @@ import {
   MAX_PAGE_SIZE,
   MIN_PAGE_SIZE,
 } from "@/constants";
+import { TRPCError } from "@trpc/server";
 
 export const agentsRouter = createTRPCRouter({
-  // TODO: 把getOne改成protectedProcedure
+  update: protectedProcedure
+    .input(agentsUpdateSchema)
+    .mutation(async ({ ctx, input }) => {
+      const [updatedAgent] = await db
+        .update(agents)
+        .set(input)
+        .where(
+          and(
+            eq(agents.id, input.id),
+            eq(agents.userId, ctx.auth.session.userId)
+          )
+        )
+        .returning();
+
+      if (!updatedAgent)
+        throw new TRPCError({ code: "NOT_FOUND", message: "未找到Agent" });
+      return updatedAgent;
+    }),
+
+  remove: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const [removedAgent] = await db
+        .delete(agents)
+        .where(
+          and(
+            eq(agents.id, input.id),
+            eq(agents.userId, ctx.auth.session.userId)
+          )
+        )
+        .returning();
+
+      if (!removedAgent)
+        throw new TRPCError({ code: "NOT_FOUND", message: "未找到Agent" });
+
+      return removedAgent;
+    }),
 
   getOne: protectedProcedure
     .input(z.object({ id: z.string() }))
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const [existingAgent] = await db
         .select({
           meetingCount: sql<number>`5`.as("meetingCount"), // TODO: 这里先写死，后续改成真实数据
           ...getTableColumns(agents),
         })
         .from(agents)
-        .where(eq(agents.id, input.id));
+        .where(
+          and(
+            eq(agents.id, input.id),
+            eq(agents.userId, ctx.auth.session.userId)
+          )
+        );
+
+      if (!existingAgent)
+        throw new TRPCError({ code: "NOT_FOUND", message: "未找到Agent" });
 
       return existingAgent;
     }),
-  // TODO: 把getMany改成protectedProcedure
 
   getMany: protectedProcedure
     .input(
