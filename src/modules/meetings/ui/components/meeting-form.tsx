@@ -160,6 +160,7 @@ export function MeetingForm({
                         </div>
                       ),
                     }))}
+                    disabled={isPending}
                     onSelect={field.onChange}
                     onSearch={setAgentSearch}
                     value={field.value}

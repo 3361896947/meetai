@@ -22,6 +22,7 @@ interface Props {
   placeholder?: string;
   isSearchable?: boolean;
   className?: string;
+  disabled?: boolean;
 }
 
 export function CommandSelect({
@@ -31,6 +32,7 @@ export function CommandSelect({
   value,
   placeholder = "选择一个选项...",
   className,
+  disabled,
 }: Props) {
   const [open, setOpen] = useState(false);
   const selectedOption = options.find((option) => option.value === value);
@@ -40,6 +42,7 @@ export function CommandSelect({
         onClick={() => setOpen(true)}
         type="button"
         variant="outline"
+        disabled={disabled}
         className={cn(
           "h-9 justify-start font-normal px-2",
           !selectedOption && "text-muted-foreground",
