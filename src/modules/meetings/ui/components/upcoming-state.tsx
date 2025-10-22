@@ -23,7 +23,6 @@ export function UpcomingState({
       />
       <div className="flex flex-col-reverse lg:flex-row lg:justify-center items-center gap-2">
         <Button
-          asChild
           variant="secondary"
           className="w-full lg:w-auto"
           onClick={onCancelMeeting}
