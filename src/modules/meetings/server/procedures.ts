@@ -223,3 +223,5 @@ export const meetingsRouter = createTRPCRouter({
       return { items: data, total: total.count, totalPages };
     }),
 });
+
+//http://localhost:8288
