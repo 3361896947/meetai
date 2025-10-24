@@ -29,7 +29,11 @@ const summarizer = createAgent({
     - 功能 X 自动完成 Y
     - 提到与 Z 的集成
 `.trim(),
-  model: openai({ model: "gpt-3.5-turbo", apiKey: process.env.OPENAI_API_KEY }),
+  model: openai({
+    model: "gpt-3.5-turbo",
+    apiKey: process.env.FREE_OPENAI_API_KEY,
+    baseUrl: process.env.FREE_OPENAI_HOST,
+  }),
 });
 
 export const meetingsProcessing = inngest.createFunction(
