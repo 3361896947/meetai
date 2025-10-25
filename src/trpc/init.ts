@@ -1,5 +1,13 @@
+import { db } from "@/db";
+import { agents, meetings } from "@/db/schema";
 import { auth } from "@/lib/auth";
+import { polarClient } from "@/lib/polar";
+import {
+  MAX_FREE_AGENTS,
+  MAX_FREE_MEETINGS,
+} from "@/modules/premium/constants";
 import { initTRPC, TRPCError } from "@trpc/server";
+import { count, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { cache } from "react";
 export const createTRPCContext = cache(async () => {
@@ -35,3 +43,45 @@ export const protectedProcedure = baseProcedure.use(async ({ ctx, next }) => {
     },
   });
 });
+
+export function premiumProcedure(entiry: "meetings" | "agents") {
+  return protectedProcedure.use(async ({ ctx, next }) => {
+    const customer = await polarClient.customers.getStateExternal({
+      externalId: ctx.auth.session.userId,
+    });
+
+    const [userMeetings] = await db
+      .select({ count: count(meetings.id) })
+      .from(meetings)
+      .where(eq(meetings.userId, ctx.auth.user.id));
+
+    const [userAgents] = await db
+      .select({ count: count(agents.id) })
+      .from(agents)
+      .where(eq(agents.userId, ctx.auth.user.id));
+
+    const isPremium = customer.activeSubscriptions.length > 0;
+    const isFreeAgentLimitReached = userAgents.count >= MAX_FREE_AGENTS;
+    const isFreeMeetingLimitReached = userMeetings.count >= MAX_FREE_MEETINGS;
+
+    const shouldThrowMeetingError =
+      entiry === "meetings" && !isPremium && isFreeMeetingLimitReached;
+    const shouldThrowAgentError =
+      entiry === "agents" && !isPremium && isFreeAgentLimitReached;
+
+    if (shouldThrowMeetingError) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: `免费用户最多只能创建 ${MAX_FREE_MEETINGS} 个对话，升级订阅以创建更多对话`,
+      });
+    }
+    if (shouldThrowAgentError) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: `免费用户最多只能创建 ${MAX_FREE_AGENTS} 个 Agents，升级订阅以创建更多 Agents`,
+      });
+    }
+
+    return next({ ctx: { ...ctx, customer } });
+  });
+}

@@ -26,6 +26,8 @@ function verifySignatureWithSDK(body: string, signature: string): boolean {
   return streamVideo.verifyWebhook(body, signature);
 }
 
+const processedEvents = new Set<Date>(); // 用于存储已处理事件的唯一 ID
+
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-signature");
   const apiKey = req.headers.get("x-api-key");
@@ -52,8 +54,6 @@ export async function POST(req: NextRequest) {
 
   const eventType = (payload as Record<string, unknown>)?.type;
 
-  console.log("Received webhook event:", eventType);
-
   if (eventType === "call.session_started") {
     const event = payload as CallSessionStartedEvent;
     const meetingId = event.call.custom?.meetingId;
@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
       .where(and(eq(meetings.id, meetingId), eq(meetings.status, "upcoming")));
 
     if (!existedMeeting) {
+      console.log("Meeting not found or already started:", meetingId);
       return NextResponse.json(
         { error: "Meeting not found or already started" },
         { status: 404 }
@@ -97,6 +98,11 @@ export async function POST(req: NextRequest) {
       openAiApiKey: process.env.OPENAI_API_KEY!,
       agentUserId: existedAgent.id,
     });
+
+    console.log(
+      "Updating session with instructions:",
+      existedAgent.instructions
+    );
 
     realTimeClient.updateSession({
       instructions: existedAgent.instructions,
@@ -166,6 +172,18 @@ export async function POST(req: NextRequest) {
     const userId = event.user?.id;
     const channelId = event.channel_id;
     const text = event.message?.text;
+
+    if (processedEvents.has(event.created_at)) {
+      console.log("Duplicate event, skipping:", event.created_at);
+      return NextResponse.json({ status: "duplicate" });
+    }
+
+    processedEvents.add(event.created_at);
+
+    console.log("Received event:", {
+      type: event.type,
+      id: event.created_at,
+    });
 
     if (!userId || !channelId || !text) {
       return NextResponse.json(

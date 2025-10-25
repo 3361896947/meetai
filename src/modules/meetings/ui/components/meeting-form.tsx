@@ -54,6 +54,9 @@ export function MeetingForm({
         await queryClient.invalidateQueries(
           trpc.meetings.getMany.queryOptions({})
         );
+        await queryClient.invalidateQueries(
+          trpc.premium.getFreeUsage.queryOptions()
+        );
 
         // TODO: Invalidate freetier usage
 
@@ -63,7 +66,7 @@ export function MeetingForm({
       onError: (error) => {
         toast.error(`创建对话失败: ${error.message}`);
 
-        // TODO:如果error code是"FORBIDDEN"，则重定向至 /upgrade 页面
+        if (error.data?.code === "FORBIDDEN") router.push("/upgrade");
       },
     })
   );
@@ -95,8 +98,7 @@ export function MeetingForm({
       onError: (error) => {
         toast.error(`创建对话失败: ${error.message}`);
 
-        // TODO:如果error code是"FORBIDDEN"，则重定向至 /upgrade 页面
-        router.push("/upgrade");
+        if (error.data?.code === "FORBIDDEN") router.push("/upgrade");
       },
     })
   );

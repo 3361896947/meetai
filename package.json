@@ -115,9 +115,5 @@
     "tsx": "^4.19.4",
     "tw-animate-css": "^1.3.4",
     "typescript": "^5"
-  },
-  "overrides": {
-    "bufferutil": false,
-    "utf-8-validate": false
   }
 }

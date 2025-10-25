@@ -41,8 +41,9 @@ export function AgentForm({
         await queryClient.invalidateQueries(
           trpc.agents.getMany.queryOptions({})
         );
-
-        // TODO: Invalidate freetier usage
+        await queryClient.invalidateQueries(
+          trpc.premium.getFreeUsage.queryOptions()
+        );
 
         onSuccess?.();
       },
@@ -50,7 +51,7 @@ export function AgentForm({
       onError: (error) => {
         toast.error(`创建Agent失败: ${error.message}`);
 
-        // TODO:如果error code是"FORBIDDEN"，则重定向至 /upgrade 页面
+        if (error.data?.code === "FORBIDDEN") router.push("/upgrade");
       },
     })
   );
@@ -82,8 +83,7 @@ export function AgentForm({
       onError: (error) => {
         toast.error(`创建Agent失败: ${error.message}`);
 
-        // TODO:如果error code是"FORBIDDEN"，则重定向至 /upgrade 页面
-        router.push("/upgrade");
+        if (error.data?.code === "FORBIDDEN") router.push("/upgrade");
       },
     })
   );

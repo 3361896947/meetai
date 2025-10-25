@@ -27,7 +27,7 @@ import { FaGithub, FaGoogle } from "react-icons/fa";
 const formSchema = z
   .object({
     name: z.string().min(1, { message: "姓名不能为空" }),
-    email: z.email({ message: "邮箱格式不正确" }),
+    email: z.string().email({ message: "邮箱格式不正确" }),
     password: z.string().min(1, { message: "密码不能为空" }),
     confirmPassword: z.string().min(1, { message: "密码不能为空" }),
   })
