@@ -58,8 +58,6 @@ export function MeetingForm({
           trpc.premium.getFreeUsage.queryOptions()
         );
 
-        // TODO: Invalidate freetier usage
-
         onSuccess?.(data.id);
       },
 
